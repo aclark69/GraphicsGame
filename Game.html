@@ -1,0 +1,1856 @@
+
+<!-- this program draws a circle -->
+
+<html>
+
+<head>
+
+<!-- script files for webgl set up and math operations -->
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="init-shaders.js"></script>
+<script type="text/javascript" src="math.js"></script>
+
+<!-- vertex shader -->
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 aPosition;
+uniform mat4 uMatrix;
+
+void main()
+{
+	gl_Position = uMatrix*aPosition;
+
+	gl_Position.x = 2.0*gl_Position.x/600.0 - 1.0;
+	gl_Position.y = 2.0*gl_Position.y/600.0 - 1.0;
+
+
+}
+
+</script>
+
+<!--fragment shader -->
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec4 uColor;
+
+void main()
+{
+	gl_FragColor = uColor;
+}
+
+</script>
+
+<script>
+var uMatrix;				//variable for connection to uniform Matrix
+var uColor;					//variable for connectino to uniform color
+var moveXDistance;			//moves mouse along the x axis
+var moveYDistance;			//moves mouse along the y axis
+var vertices;				//holds values of vertices for the first game
+var direction;				//holds current direction of mouse
+var copyCircle;				//holds current values of the mouse
+var copyMovingCircle;		//holds current x an gy values of a moving circle
+var copyBackAndForthCircle;	//holds current x and y values of a circle moving back and forth 
+var copyRotatingStick;		//holds current x and y values of a rotating stick
+var okayToMoveUp;			//determines whether the mouse can move up
+var okayToMoveDown;			//determines whther the mouse can move down
+var okayToMoveLeft;			//determines whether the mouse can move left
+var okayToMoveRight;		//determines whether the mouse can move right
+var movingCircleX;			//holds initial x location of a circle
+var movingCircleY;			//holds initial y location of a circle
+var originalDirection;		//holds orignal direction of a circle
+							//that moves along a path
+var uLost;					//detemines whether you won or lost the game
+var factor;					//holds the values for scaling a circle
+var backAndForth;			//holds the current x value for a circle
+							//that moves back and forth
+var leftOrRight;			//determines the intial direction of a 
+							//circle that moves back and forth
+var angle;					//angle of a rotating stick
+var theta;					//incremetn of the angle
+var possibleMaps;			//possible maps to display
+var showMap1;				//determines whether or not to show
+							//map 2
+var currentMap;				//has the current value of which map
+							//will be displayed
+
+/**variables for second map****/
+var secondMapVertices;		//holds different vertices for second map
+var moveXDistance2;			//holds value for moving the mouse along
+							//the x axis
+var moveYDistance2;			//hold value for moving the mouse along
+							//teh y axis
+var copySecondMouse;		//holds current coordinates for the mouse
+var backAndForth2;			//determines how much to move a ball ball
+							//along the x axis
+var angle2;					//angle for a rotating square
+var theta2;					//increment for a rotating square
+var angle3;					//angle for a rotating circle
+var theta3;					//increment for a rotating circle
+var copyBackAndForthCircle2 = []; //holds current coordiantes
+						//for a circle moving back forth
+var addOnce = 0;		//allows pushing of vertices into a array
+						//to only happen once
+var uWon;
+
+function main()
+{
+	direction = "";
+
+	copyCircle = [];
+
+	copyMovingCircle = [];
+
+	vertices = [];
+
+	copyBackAndForthCircle = [];
+
+	copyRotatingStick = [];
+
+	possibleMaps = ["1", "2"];
+
+	okayToMoveUp = true;
+	okayToMoveDown = true;
+	okayToMoveRight = true;
+	okayToMoveLeft = true;
+
+	originalDirection = "up";
+
+	angle = 0.0;
+
+	theta = 10.0;
+
+	direction = "right";
+
+	factor = 1;
+
+	backAndForth = 50;
+
+
+	leftOrRight = "right";
+
+
+
+
+	uLost = false;
+
+	uWon = false;
+
+	makeCircle(vertices);
+
+
+
+	//draws first line for border
+	vertices.push(vec2(500, 0), vec2(500, 350));
+
+	//draws second line for border
+	vertices.push(vec2(600, 450), vec2(425, 450));
+
+	//draws third line for border
+	vertices.push(vec2(400, 0), vec2(400, 350));
+
+	//draws fourth line for border
+	vertices.push(vec2(400, 350), vec2(250, 350));
+
+	//draws fifth line for border
+	vertices.push(vec2(150, 100), vec2(300, 100));
+
+	//draws sixth line for border
+	vertices.push(vec2(300, 100), vec2(300, 230));
+
+	//draw seventh line for border
+	vertices.push(vec2(300, 230), vec2(150, 230));
+
+	//draws eight line for border
+	vertices.push(vec2(150, 230), vec2(150, 600));
+
+	makeMovingCirlce(vertices);
+
+	//draws L that signifies you lost
+	vertices.push(
+					vec2(100, 250), vec2(100, 500), vec2(150, 500), vec2(150, 250));
+
+
+	//pushes vertices for a circle into vertices array
+	 makeExpandingDisk(vertices, 20, 100);
+
+	 //pushes vertices for a circle into a vertics array
+	 makeCircle2(vertices, 20, 100);
+
+	 //draws rotating stick
+	 vertices.push(vec2(75, 250), vec2(75, 330), vec2(85, 330), vec2(85, 250));
+
+	 //copy coordinates of a rotating stick into
+	 //a array
+	 copyCoordinatesOfRotatingStick();
+
+	moveXDistance = 550;
+	moveYDistance = 100;
+
+	movingCircleX = 450;
+	movingCircleY = 100;
+
+
+    var currentMap = getRandomMaps(possibleMaps);
+
+	if(currentMap == "1")
+	{
+		showMap1 = true;
+	}
+	else
+	{
+		showMap1 = false
+	}
+
+
+
+
+	/**********For the second map**************/
+	secondMapVertices = [];
+
+	backAndForth2 = 160;
+
+	angle2 = 0.0;
+
+	theta = 1.0;
+
+	angle3 = 0.0;
+
+	theta3 = 2.0;
+
+	copySecondMouse = [];
+
+	copyBackAndForthCircle2 = [];
+
+	//holds vertices for borders for second map
+	secondMapVertices.push(vec2(100, 100), vec2(100, 600));
+	secondMapVertices.push(vec2(200, 0), vec2(200, 500));
+	secondMapVertices.push(vec2(400, 600), vec2(400, 200));
+	secondMapVertices.push(vec2(400, 200), vec2(300, 200));
+	secondMapVertices.push(vec2(400, 200), vec2(520, 200));
+	secondMapVertices.push(vec2(600, 300), vec2(500, 300));
+	secondMapVertices.push(vec2(400, 400), vec2(500, 400));
+
+	//make vertices for mouse for the second map
+	makeCircleSecondMap(secondMapVertices);
+
+	//makes vertices for a circle that moves back and forth
+	makeCircle3(secondMapVertices);
+
+	//vertices for a rotating square
+	secondMapVertices.push(vec2(275, 300));
+	secondMapVertices.push(vec2(275, 375));
+	secondMapVertices.push(vec2(350, 375));
+	secondMapVertices.push(vec2(350, 300));
+
+	//makes vertices for ball that moves around a fixed point
+	makeCircle2(secondMapVertices, 20, 100);
+
+	secondMapVertices.push(vec2(100, 250), vec2(100, 500), vec2(150, 500), vec2(150, 250));
+	
+
+
+	moveXDistance2 = 50;
+	moveYDistance2 = 550;
+
+	addOnce = 0;
+
+	/*****************************************/
+
+
+
+	//set up webgl
+	var canvas = document.getElementById("gl-canvas");
+	gl = WebGLUtils.setupWebGL(canvas);
+
+	//set up shaders
+    var program = initShaders(gl, "vertex-shader", "fragment-shader");
+    gl.useProgram(program);
+
+    //create vertex buffer and bind it
+    var vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+
+    //connect vertex bufffer to attribute variable aPosition
+    var aPosition = gl.getAttribLocation(program, "aPosition");
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(aPosition);
+
+    //buffer vertices into vertex buffer
+
+
+    if(showMap1 == true)
+    {
+    	gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
+    }
+    else
+    {
+    	gl.bufferData(gl.ARRAY_BUFFER, flatten(secondMapVertices), gl.STATIC_DRAW);
+    }
+    
+
+    //connect to uniform uColor
+    uColor = gl.getUniformLocation(program, "uColor");
+
+
+
+    //connect to uniform uMatrix
+    uMatrix = gl.getUniformLocation(program, "uMatrix");
+
+   
+
+    //set viewport to canvas
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    //clear canvas
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    //draw square
+    draw();
+
+
+}
+
+function draw()
+{
+	//draws and creates the neccessary data for the first map
+	if(showMap1 == true)
+	{
+
+		var matrix1, matrix2, matrix3, matrix;
+
+		var matrix4;
+
+		gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+    	/****************draws cirlce******************/
+
+    	matrix = translate(moveXDistance, moveYDistance, 0);
+
+    	gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+    	gl.uniform4fv(uColor, flatten(vec4(0.0, 1.0, 0.0, 1.0)));
+
+    	gl.drawArrays(gl.TRIANGLE_FAN, 0, 100);
+
+
+
+    	/***************draws borders of maze************/
+
+
+    	//matrix1 = scaling()
+
+    	matrix = scaling(1, 1, 0);
+
+
+    	gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+    	gl.uniform4fv(uColor, flatten(vec4(1.0, 0.0, 0.0, 1.0)));
+
+    	//draws first line
+    	gl.drawArrays(gl.LINE_STRIP, 100, 2);
+
+    	//draws second line
+    	gl.drawArrays(gl.LINE_STRIP, 102, 2);
+
+    	//draws third line
+    	gl.drawArrays(gl.LINE_STRIP, 104, 2);
+
+    	//draws fourth line
+    	gl.drawArrays(gl.LINE_STRIP, 106, 2);
+
+    	//draws fifth line
+    	gl.drawArrays(gl.LINE_STRIP, 108, 2);
+
+    	//draws sixth line
+    	gl.drawArrays(gl.LINE_STRIP, 110, 2);
+
+    	//draws seventh line
+    	gl.drawArrays(gl.LINE_STRIP, 112, 2);
+
+    	//draws eigth line
+    	gl.drawArrays(gl.LINE_STRIP, 114, 2);
+
+
+    	/*************Draws a rotating stick****************/
+   
+    	angle = angle + theta;
+
+ 		updateCordinatesOfStick(angle);
+
+    	var matrix1 = translate(-80, -290, 0);
+    	var matrix2 = rotatez(angle);
+    	var matrix3 = translate(80, 290, 0);
+    	var matrix = multiply(matrix3, multiply(matrix2, matrix1));
+
+    	gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+    	gl.uniform4fv(uColor, flatten(vec4(1.0, 0.0, 0.0, 1.0)));
+
+		gl.drawArrays(gl.TRIANGLE_FAN, 420, 4);    
+
+		/********************************/
+
+
+
+		/**********draws two circles that move back and forth******/
+
+	
+		if(leftOrRight == "right")			
+		{	
+			backAndForth = backAndForth + 2;
+			if(backAndForth >= 250)
+			{
+				leftOrRight = "left";
+			}
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 == 0)
+				{
+					copyBackAndForthCircle[i] = copyBackAndForthCircle[i] + 2;
+				}
+			}
+		}
+		else if(leftOrRight == "left")		//move from right border to the left border
+		{
+			backAndForth = backAndForth - 2;
+			if(backAndForth == 20)
+			{
+				leftOrRight = "right";
+			}
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 == 0)
+				{
+					copyBackAndForthCircle[i] = copyBackAndForthCircle[i] - 2;
+				}
+			}
+
+		}
+		
+
+		matrix = translate(backAndForth, 190, 0);
+
+		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+		gl.uniform4fv(uColor, flatten(vec4(1.0, 1.0, 0.0, 1.0)));
+		gl.drawArrays(gl.TRIANGLE_FAN, 320, 100);	
+
+		/*************************************************/
+
+
+		/****determines whether you won or lost the game******/
+   
+ 		if(uLost == true)
+    	{
+    		matrix = scaling(1, 1, 0);
+    		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+			gl.uniform4fv(uColor, flatten(vec4(1.0, 0.0, 0.0, 1.0)));
+		    gl.drawArrays(gl.TRIANGLE_FAN, 216, 4);
+    	}
+
+   		/***************************************************/
+
+
+    	/****Draw Moving Circle***/
+
+    
+    	//move from left border to the right border
+
+
+    	//draws moving circle
+		matrix = translate(movingCircleX, movingCircleY, 0);
+
+		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+		gl.uniform4fv(uColor, flatten(vec4(1.0, 0.0, 0.0, 1.0)));
+    	gl.drawArrays(gl.TRIANGLE_FAN, 116, 100);
+    	/**********/
+
+
+    	//draws ninth line
+    	gl.drawArrays(gl.LINE_STRIP, 116, 2);
+
+
+    	moveTheCircle();
+
+    
+
+
+   		didMouseHitMovingCircle();
+
+    	hitBackAndForthCircle();
+	}
+	else
+	//draws and creates the neccessary data for the second map
+	{
+
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		/*******second map info goes right here*************/
+
+		var matrix = translate(0, 0, 0);
+		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+		gl.uniform4fv(uColor, flatten(vec4(1.0, 0.0, 0.0, 1.0)));
+
+		gl.drawArrays(gl.LINE_STRIP, 0, 2);
+
+		gl.drawArrays(gl.LINE_STRIP, 2, 2);
+
+		gl.drawArrays(gl.LINE_STRIP, 4, 2);
+
+		gl.drawArrays(gl.LINE_STRIP, 6, 2);
+
+		gl.drawArrays(gl.LINE_STRIP, 8, 2);
+
+		gl.drawArrays(gl.LINE_STRIP, 10, 2);
+
+		gl.drawArrays(gl.LINE_STRIP, 12, 2);
+
+		/*****Draw circle controlled by arrow*****/
+
+		matrix = translate(moveXDistance2, moveYDistance2, 0);
+
+    	gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+		gl.drawArrays(gl.TRIANGLE_FAN, 14, 100);
+
+
+
+		/*********************************/
+
+
+		/**********draws a circle that moves back and forth****/
+
+		if(leftOrRight == "right")			
+		{	
+			backAndForth2 = backAndForth2 + 2;
+			if(backAndForth2 >= 350)
+			{
+				leftOrRight = "left";
+			}
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 == 0)
+				{
+					copyBackAndForthCircle2[i] = copyBackAndForthCircle2[i] + 2;
+				}
+			}
+		}
+		else if(leftOrRight == "left")//move from right border to the left border
+		{
+			backAndForth2 = backAndForth2 - 2;
+			if(backAndForth2 == 120)
+			{
+				leftOrRight = "right";
+			}
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 == 0)
+				{
+					copyBackAndForthCircle2[i] = copyBackAndForthCircle2[i] - 2;
+
+				}
+			}
+
+		}
+
+
+		matrix = translate(backAndForth2, 550, 0);
+
+		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+		gl.uniform4fv(uColor, flatten(vec4(0.0, 0.0, 1.0, 1.0)));
+
+		gl.drawArrays(gl.TRIANGLE_FAN, 114, 100);
+
+
+
+		/*************Draws a square that moves back and forth************/
+
+		angle2 = angle2 + theta;
+
+
+		matrix1 = translate(-312, -337, 0);
+		matrix2 = rotatez(angle2);
+		matrix3 = translate(312, 337, 0);
+		matrix = multiply(matrix3, multiply(matrix2, matrix1));
+
+
+		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+
+		gl.uniform4fv(uColor, flatten(vec4(0.0, 1.0, 0.0, 1.0)));
+
+		gl.drawArrays(gl.TRIANGLE_FAN, 214, 4);
+
+
+		/****************/
+
+
+
+		/**********draws a circle that rotates on a point**********/
+
+		angle3 = angle3 + theta3;
+
+		matrix = translate(410, 180, 0);
+
+		matrix1 = translate(-410, -120, 0);
+		matrix2 = rotatez(angle3);
+		matrix3 = translate(410, 70, 0);
+
+		matrix4 = multiply(matrix3, multiply(matrix2, multiply(matrix1, matrix)));
+
+		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix4));
+
+		gl.uniform4fv(uColor, flatten(vec4(1.0, 1.0, 0.0, 1.0)));
+
+		gl.drawArrays(gl.TRIANGLE_FAN, 218, 100);
+
+
+
+		/*************************/
+
+		didMouseHitMovingCircleSecondMap();
+
+		if(uLost == true)
+    	{
+    		matrix = scaling(1, 1, 0);
+    		gl.uniformMatrix4fv(uMatrix, false, flatten(matrix));
+			gl.uniform4fv(uColor, flatten(vec4(1.0, 0.0, 0.0, 1.0)));
+		    gl.drawArrays(gl.TRIANGLE_FAN, 318, 4);
+    	}
+
+
+
+	}
+
+	didYouWin();
+
+    requestAnimationFrame(draw);
+}
+
+//determines whether you won the game
+function didYouWin()
+{
+	if((copyCircle[0] < 150 && copyCircle[0]) && (copyCircle[1] > 500))
+	{
+		uWon = true;
+		alert("You won");
+	}
+
+}
+
+//determiens a map randomly
+function getRandomMaps(listOfMaps) 
+{
+    var rnd = listOfMaps[Math.floor(Math.random()*listOfMaps.length)];
+    return rnd;
+}
+
+
+//updates the coordinates of the mouse
+function updateCircleCoordinates(direction)
+{
+	var count = 0;
+
+	if(direction == "up")  //move coordinates up by 10
+	{
+		for(var i=0; i<200; i++)			//add only to the y coordinates
+		{
+			if(count%2 != 0)
+			{
+				copyCircle[i] = copyCircle[i] + 10;
+
+			}
+			count = count + 1;			
+		}
+		count = 0;
+
+
+	}
+	else if(direction == "down")			//add only to the y coordinates
+	{
+		for(var i=0; i<200; i++)
+		{
+			if(count%2 != 0)
+			{
+				copyCircle[i] = copyCircle[i] - 10;
+			}
+			count = count + 1;
+		}
+		count = 0;
+	}
+	else if(direction == "right")			//add only to the x coordinates
+	{
+		for(var i=0; i<200; i++)
+		{
+			if(count%2 == 0)
+			{
+				copyCircle[i] = copyCircle[i] + 10;		
+				
+			}
+			count = count + 1;
+		}
+		count = 0;
+	}
+	else if(direction == "left")
+	{
+		for(var i=0; i<200; i++)
+		{
+			if(count%2 == 0)
+			{
+				copyCircle[i] = copyCircle[i] - 10;				
+			}
+			count = count + 1;
+		}
+		count = 0;
+
+	}
+
+
+}
+
+//updates the coordinates of a circle for the second map
+function updateCircleCoordinatesSecondMap(direction)
+{
+	var count = 0;
+
+	if(direction == "up")  //move coordinates up by 10
+	{
+		for(var i=0; i<200; i++)			//add only to the y coordinates
+		{
+			if(count%2 != 0)
+			{
+				copySecondMouse[i] = copySecondMouse[i] + 10;
+			}
+			count = count + 1;			
+		}
+		count = 0;
+	}
+	else if(direction == "down")			//add only to the y coordinates
+	{
+		for(var i=0; i<200; i++)
+		{
+			if(count%2 != 0)
+			{
+				copySecondMouse[i] = copySecondMouse[i] - 10;
+			}
+			count = count + 1;
+		}
+		count = 0;
+	}
+	else if(direction == "right")			//add only to the x coordinates
+	{
+		for(var i=0; i<200; i++)
+		{
+			if(count%2 == 0)
+			{
+				copySecondMouse[i] = copySecondMouse[i] + 10;		
+				
+			}
+			count = count + 1;
+		}
+		count = 0;
+
+	}
+	else if(direction == "left")
+	{
+		for(var i=0; i<200; i++)
+		{
+			if(count%2 == 0)
+			{
+				copySecondMouse[i] = copySecondMouse[i] - 10;				
+			}
+			count = count + 1;
+		}
+		count = 0;
+	}
+
+
+}
+
+//updates the coordiantes of stick whiles its spinning
+function updateCordinatesOfStick(angle)
+{
+
+	//angle = calcAngle
+	var sin = Math.sin(angle*Math.PI/180);
+    var cos = Math.cos(angle*Math.PI/180);
+
+
+    for(var i=0; i<8; i++)
+    {
+
+    	if(i%2 == 0)
+    	{
+    		copyRotatingStick[i] = cos*copyRotatingStick[i] - sin*copyRotatingStick[i];
+    	}
+    	if(i%2 != 0)
+    	{
+    		copyRotatingStick[i] = sin*copyRotatingStick[i] + cos*copyRotatingStick[i];
+    	}
+    }
+
+
+
+}
+
+//copys coordinates fo the stick for later updating
+function copyCoordinatesOfRotatingStick()
+{
+	copyRotatingStick.push(75);
+	copyRotatingStick.push(250);
+	copyRotatingStick.push(75);
+	copyRotatingStick.push(330);
+	copyRotatingStick.push(85);
+	copyRotatingStick.push(330);
+	copyRotatingStick.push(85);
+	copyRotatingStick.push(250);
+
+}
+
+//determines if mouse hit the first wall for first map
+function hitFirstWall()
+{
+	var count = 0;
+
+	for(var i=0; i<200; i++)
+	{
+		if(count%2 == 0)		//check x coordinates
+		{
+			if((copyCircle[i] == 520) && (copyCircle[i+1] < 330))
+			{
+				okayToMoveLeft = false;
+			}
+
+			if((copyCircle[i] == 480) && (copyCircle[i+1] < 330))
+			{
+				okayToMoveRight = false;
+			}
+
+
+			count = count + 1;
+		}
+	}
+}
+
+//determines if mouse hit the second wall for first map
+function hitSecondWall()
+{
+
+	var count = 0;
+
+
+	//hit botttom of wall
+	if(((copyCircle[0] > 425) && (copyCircle[0] < 600)) && (copyCircle[1] == 450))		//hit left side of frst wall
+	{
+		okayToMoveUp = false;
+	}
+
+	if(((copyCircle[100] > 425) && (copyCircle[100] < 600)) && (copyCircle[101] == 450))		//hit left side of frst wall
+	{
+		okayToMoveDown = false;
+	}
+}
+
+
+//determines if mouse hit the third wall for first map
+function hitThirdWall()
+{
+	var count = 0;
+
+
+	//if(((copyCircle[49]) > 399) && (copyCircle[49] < 400)) && ((copyCircle[50] < 330) && (copyCircle[50] > 0)))
+	//&& (copyCircle[50] < 400))]
+	//right side of wall
+	if((copyCircle[50] == 400)  && ((copyCircle[51] < 330)) && ((copyCircle[51]  > 0)))
+	{
+		okayToMoveRight = false;
+	}
+
+
+	//left side of wall
+	for(var i=0; i<200; i++)
+	{
+		if(count%2 == 0)
+		{
+			if(((copyCircle[i] > 400) && (copyCircle[i] <401 )) && ((copyCircle[i+1] < 330) && (copyCircle[i+1] > 0)))
+			{
+				okayToMoveLeft = false;
+			}
+
+		}
+
+		count = count + 1;
+	}
+	
+}
+
+//determines if mouse hit the fourth wall for first map
+function hitFourthWall()
+{
+	var count = 0;
+
+	//hit botttom of wall
+	if(((copyCircle[0] > 250) && (copyCircle[0] < 400)) && (copyCircle[1] == 350))		//hit left side of first wall
+	{
+		okayToMoveUp = false;
+	}
+
+	if(((copyCircle[100] > 250) && (copyCircle[100] < 400)) && ((copyCircle[101] >=350) && (copyCircle[101] <= 351)))		
+	{
+		okayToMoveDown = false;
+	}
+
+}
+
+//determines if mouse hit the fifth wall for first map
+function hitFifthWall()
+{
+	var count = 0;
+
+	//hit botttom of wall
+	if(((copyCircle[0] > 150) && (copyCircle[0] < 300)) && (copyCircle[1] == 100))		//hit left side of first wall
+	{
+		okayToMoveUp = false;
+	}
+
+	
+	if(((copyCircle[100] > 150) && (copyCircle[100] < 300)) && ((copyCircle[101] >=100) && (copyCircle[101] <= 101)))		
+	{
+		okayToMoveDown = false;
+	}
+	
+}
+
+//determines if mouse hit the sixth wall for first map
+function hitSixthWall()
+{
+	var count = 0;
+
+	if((copyCircle[150] == 300)  && (copyCircle[151] < 220) && (copyCircle[151]  > 100))
+	{
+		okayToMoveLeft = false;
+	}
+
+	if((copyCircle[50] == 300)  && (copyCircle[51] < 220) && (copyCircle[51]  > 100))
+	{
+		okayToMoveRight = false;
+	}
+	
+}
+
+//determines if mouse hit the seventh wall for first map
+function hitSeventhWall()
+{
+	var count = 0;
+
+	//hit botttom of wall
+	if(((copyCircle[0] > 150) && (copyCircle[0] < 300)) && (copyCircle[1] == 230))		//hit left side of first wall
+	{
+		okayToMoveUp = false;
+	}
+
+
+
+	
+	if(((copyCircle[100] > 150) && (copyCircle[100] < 300)) && ((copyCircle[101] >=230) && (copyCircle[101] <= 231)))		
+	{
+		okayToMoveDown = false;
+	}
+	
+}
+
+//determines if mouse hit the eighth wall for first map
+function hitEightWall()
+{
+	var count = 0;
+	
+	if((copyCircle[50] == 150)  && (copyCircle[51] < 600) && (copyCircle[51]  > 230))
+	{
+		okayToMoveRight = false;
+	}
+	
+	if(((copyCircle[150] >= 150) && (copyCircle[150] <= 151)) && ((copyCircle[151] > 230) && (copyCircle[151] < 600)))		
+	{
+		okayToMoveLeft = false;
+	}
+
+
+	
+}
+
+//create vertices for a circle
+function makeCircle(vertexArray)
+{
+	var points = 100;
+	var theta = 2*Math.PI/points;
+	var radius = 20;
+	var cx = 100;
+	var cy = 100;
+
+	for(var i=0; i<points; i++)
+	{
+		var x = radius*Math.sin(i*theta);
+		var y = radius*Math.cos(i*theta);
+		copyCircle.push(x);
+		copyCircle.push(y);
+		vertexArray.push(vec2(x, y));
+	}
+
+
+	//adjust x an y positions for the translation in the draw function
+	var moveXBy = 550;
+	var moveYBy = 100;
+	var countx = 0;
+	var county = 0;
+
+	for(var i=0; i<200; i++)
+	{
+
+		if(countx%2 == 0)		//x position
+		{
+			copyCircle[i] = copyCircle[i] + moveXBy;
+		}
+		else 					//y position
+		{
+			copyCircle[i] = copyCircle[i] + moveYBy;
+		}
+
+		countx = countx + 1;
+	}
+
+
+ 
+}
+
+//creates vertices for a moving circle
+function makeMovingCirlce(vertexArray)
+{
+	var points = 100;
+	var theta = 2*Math.PI/points;
+	var radius = 20;
+	var cx = 100;
+	var cy = 100;
+
+	for(var i=0; i<points; i++)
+	{
+		var x = radius*Math.sin(i*theta);
+		var y = radius*Math.cos(i*theta);
+		copyMovingCircle.push(x);
+		copyMovingCircle.push(y);
+		vertexArray.push(vec2(x, y));
+	}
+
+
+
+	for(var i=0; i<200; i++)
+	{	
+		//all the coordinates
+		if(i%2 == 0)
+		{
+			copyMovingCircle[i] = copyMovingCircle[i] + 450;
+		}
+		else if(i%2 != 0)
+		{
+			copyMovingCircle[i] = copyMovingCircle[i] + 100;
+		}
+	}
+
+}
+
+//creates vertices for a expanding circle
+function makeExpandingDisk(vertexArray, radius, count)
+{
+	var theta = 2*Math.PI/count;
+
+
+	for(var i=0; i<count; i++)
+	{
+		var x = radius*Math.cos(i*theta);
+		var y = radius*Math.sin(i*theta);
+		vertexArray.push(vec2(x,y));
+
+	}
+
+}
+
+//creates vertices for a moving circle
+function makeCircle3(vertexArray)
+{
+
+	var points = 100;
+	var theta = 2*Math.PI/points;
+	var radius = 20;
+
+
+	for(var i=0; i<points; i++)
+	{
+		var x = radius*Math.sin(i*theta);
+		var y = radius*Math.cos(i*theta);
+		copyBackAndForthCircle2.push(x);
+		copyBackAndForthCircle2.push(y);
+		vertexArray.push(vec2(x, y));
+	}
+
+	for(var i=0; i<200; i++)
+	{
+		if(i%2 == 0)
+		{
+			copyBackAndForthCircle2[i] = copyBackAndForthCircle2[i] + 160;
+		}
+
+		if(i%2 != 0)
+		{
+			copyBackAndForthCircle2[i] = copyBackAndForthCircle2[i] + 550;
+
+		}
+	}
+
+
+}
+
+//creates vertices for another/different moving circle
+function makeCircle2(vertexArray, radius, count)
+{
+	var points = 100;
+	var theta = 2*Math.PI/points;
+	var radius2 = 20;
+
+	for(var i=0; i<points; i++)
+	{
+		var x = radius2*Math.sin(i*theta);
+		var y = radius2*Math.cos(i*theta);
+
+		vertexArray.push(vec2(x,y));
+
+
+		if(addOnce == 0)
+		{
+			copyBackAndForthCircle.push(x);
+			copyBackAndForthCircle.push(y);
+
+		}
+	}
+
+
+
+	moveXDistance2 = 50;
+	moveYDistance2 = 550;
+
+	if(addOnce == 0)
+	{
+		for(var i=0; i<200; i++)
+		{
+			if(i%2 == 0)
+			{
+				//x coordinate
+				copyBackAndForthCircle[i] = radius*Math.cos(i*theta) + 50;
+			}
+
+			if(i%2 != 0)
+			{
+				copyBackAndForthCircle[i] = radius*Math.sin(i*theta) + 550;
+			}
+
+		}
+
+	}
+
+
+	addOnce++;
+	
+
+}
+
+//determines whether it is okay for the mouse to move in a
+//specific direction
+function okayToMoveAgain()
+{
+	if(okayToMoveLeft == false)
+	{
+		if(keyboardPress == '39')	//if keyboard press == move right
+		{
+			okayToMoveLeft = true;
+		}
+	}	
+	else if(okayToMoveRight == false)
+	{
+		if(keyboardPress == '37')
+		{
+			okayToMoveRight = true;
+		}
+	}
+	else if(okayToMoveUp == false)
+	{
+		if(keyboardPress == '40')
+		{
+			okayToMoveUp = true;
+		}
+	}
+	else if(okayToMoveDown == false)
+	{
+		if(keyboardPress == '38')
+		{
+			okayToMoveDown = true;
+		}
+	}
+	//else if(okayToMoveDown == false)
+
+}
+
+
+//determines if mouse hit moving circle
+function didMouseHitMovingCircle()
+{
+	var count1 = 1;
+	var count2 = 1;
+
+	var currentMouseX = 0;
+	var currentMouseY = 0;
+	
+	for(var i=0; i<200; i++)
+	{
+
+		//value of the circle controlled by arrow keys
+		
+		if(i%2 == 0)
+		{
+			currentMouseX = copyCircle[i];
+			currentMouseY = copyCircle[count1];			
+		}
+		else
+		{
+			currentMouseX = 0;
+			currentMouseY = 0;
+		}
+		
+		for(var j=0; j<200; j++)
+		{
+
+			if(j%2 == 0)
+			{
+				var currentMovingX = copyMovingCircle[j];
+				var currentMovingY = copyMovingCircle[count2];
+
+				if((currentMouseX == currentMovingX) && (currentMouseY == currentMovingY))
+				{
+					uLost = true;
+				}
+
+			}
+			
+			count2++;
+
+		}
+
+		count2 = 1;
+
+		count1++;
+		
+	}
+	
+
+}
+
+//determines if mouse hit moving circle for second map
+function didMouseHitMovingCircleSecondMap()
+{
+	var count1 = 1;
+	var count2 = 1;
+
+	var currentMouseX = 0;
+	var currentMouseY = 0;
+	
+	for(var i=0; i<200; i++)
+	{
+
+		//value of the circle controlled by arrow keys
+		
+		if(i%2 == 0)
+		{
+			currentMouseX = copySecondMouse[i];
+			currentMouseY = copySecondMouse[count1];			
+		}
+		else
+		{
+			currentMouseX = 0;
+			currentMouseY = 0;
+		}
+		
+		for(var j=0; j<200; j++)
+		{
+
+			if(j%2 == 0)
+			{
+				var currentMovingX = copyBackAndForthCircle2[j];
+				var currentMovingY = copyBackAndForthCircle2[count2];
+
+				if((currentMouseX == currentMovingX) && (currentMouseY == currentMovingY))
+				{
+					uLost = true;
+				}
+
+			}
+			
+			count2++;
+
+		}
+
+		count2 = 1;
+
+		count1++;
+		
+	}
+	
+
+}
+
+//determines if mouse hit a circle that moves
+//back and forth
+function hitBackAndForthCircle()
+{
+	var count1 = 1;
+	var count2 = 1;
+
+	var currentMouseX = 0;
+	var currentMouseY = 0;
+	
+
+
+	for(var i=0; i<200; i++)
+	{
+
+		//value of the circle controlled by arrow keys
+		
+		if(i%2 == 0)
+		{
+			currentMouseX = copyCircle[i];
+			currentMouseY = copyCircle[count1];			
+		}
+		else
+		{
+			currentMouseX = 0;
+			currentMouseY = 0;
+		}
+		
+		for(var j=0; j<200; j++)
+		{
+
+			if(j%2 == 0)
+			{
+				var currentMovingX = copyBackAndForthCircle[j];
+				var currentMovingY = copyBackAndForthCircle[count2];
+
+				var estimatePlusX = currentMovingX + 5;
+				var estimateMinusX = currentMovingX - 5;
+
+				var estimatePlusY = currentMovingY + 5;
+				var estimateMinusY = currentMovingY - 5;				
+
+
+				//console.log(copyCircle[0]);
+				//console.log(copyBackAndForthCircle[0]);
+				if((currentMouseX < estimatePlusX && currentMouseX > estimateMinusX) && (currentMouseY < estimatePlusY && currentMouseY > estimateMinusY)) 
+				{	
+					uLost = true;
+				}
+
+				//&& (currentMouseY == currentMovingY)
+			}
+			
+			count2++;
+
+		}
+
+		count2 = 1;
+
+		count1++;
+		
+	}
+
+}
+
+//makes a circle for the second map
+function makeCircleSecondMap(vertexArray)
+{
+	var points = 100;
+	var theta = 2*Math.PI/points;
+	var radius = 20;
+
+	for(var i=0; i<points; i++)
+	{
+		var x = radius*Math.sin(i*theta);
+		var y = radius*Math.cos(i*theta);
+
+
+		copySecondMouse.push(x);
+		copySecondMouse.push(y);
+
+		vertexArray.push(vec2(x, y));
+	}
+
+
+
+	moveXDistance2 = 50;
+	moveYDistance2 = 550;
+
+	
+	for(var i=0; i<200; i++)
+	{
+		if(i%2 == 0)
+		{
+			copySecondMouse[i] = copySecondMouse[i] + moveXDistance2;
+		}
+
+		if(i%2 != 0)
+		{
+			copySecondMouse[i] = copySecondMouse[i] + moveYDistance2;
+		}
+
+	}
+
+	
+
+}
+
+//moves a circle along a certain path
+function moveTheCircle()
+{
+	if(originalDirection == "up")
+	{
+		//move the y axis move from start to up
+		if(movingCircleY < 400)
+		{
+			movingCircleY = movingCircleY + 2;
+
+
+			//updates the coordiantes that have been pushed to
+			//the copyMovingCircle array
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 != 0)
+				{
+					copyMovingCircle[i] = copyMovingCircle[i] + 2;
+				}
+			}
+
+		}
+
+
+
+		//move the x axis from right to left
+		if(movingCircleY == 400 && movingCircleX > 350)
+		{
+			movingCircleX = movingCircleX - 2;
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 == 0)
+				{
+					copyMovingCircle[i] = copyMovingCircle[i] - 2;
+				}
+			}
+
+		}
+
+		//move the y axis from middle of screen to top of screen
+		if((movingCircleY >= 400 && movingCircleY <= 550) && (movingCircleX == 350))
+		{
+			movingCircleY = movingCircleY + 2;
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 != 0)
+				{
+					copyMovingCircle[i] = copyMovingCircle[i] + 2;
+				}
+			}
+
+		}
+
+
+		if(movingCircleY == 550)
+		{
+			originalDirection = "down";
+
+		}
+	}
+
+	if(originalDirection == "down")
+	{
+		if(movingCircleX == 350 && (movingCircleY <= 550 && movingCircleY >400))
+		{
+			movingCircleY = movingCircleY - 2;
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 != 0)
+				{
+					copyMovingCircle[i] = copyMovingCircle[i] - 2;
+				}
+			}
+
+		}
+
+		if((movingCircleX >= 350 && movingCircleX < 450) && (movingCircleY == 400))
+		{
+			movingCircleX = movingCircleX + 2;
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 == 0)
+				{
+					copyMovingCircle[i] = copyMovingCircle[i] + 2;
+				}
+			}
+
+		}
+
+		if(movingCircleX == 450 && (movingCircleY <= 400 && movingCircleY > 100))
+		{
+			movingCircleY = movingCircleY - 2;
+
+			for(var i=0; i<200; i++)
+			{
+				if(i%2 != 0)
+				{
+					copyMovingCircle[i] = copyMovingCircle[i] - 2;
+				}
+			}
+
+		}
+
+		if(movingCircleY == 100)
+		{
+			originalDirection = "up";
+		}
+
+	}
+}
+
+//detrmines if the mouse hit the first wall 
+//for the second map
+function hitFirstWallSecondMap()
+{
+	var count = 0;
+	
+	if((copySecondMouse[50] == 100)  && (copySecondMouse[51] < 600) && (copySecondMouse[51]  > 100))
+	{
+		okayToMoveRight = false;
+	}
+	
+	
+	if(((copySecondMouse[150] >= 100) && (copySecondMouse[150] <= 101)) && ((copySecondMouse[151] > 100) && (copySecondMouse[151] < 600)))		
+	{
+		okayToMoveLeft = false;
+	}
+
+	
+	
+}
+
+//detrmines if the mouse hit the second wall 
+//for the second map
+function hitSecondWallSecondMap()
+{
+	var count = 0;
+	
+
+	if((copySecondMouse[50] == 200)  && (copySecondMouse[51] < 500) && (copySecondMouse[51]  > 0))
+	{
+		okayToMoveRight = false;
+	}
+	
+	
+	if(((copySecondMouse[150] >= 200) && (copySecondMouse[150] <= 201)) && ((copySecondMouse[151] > 0) && (copySecondMouse[151] < 500)))		
+	{
+		okayToMoveLeft = false;
+	}
+	
+}
+
+
+//detrmines if the mouse hit the third wall 
+//for the second map
+function hitThirdWallSecondMap()
+{
+	var count = 0;
+	
+	if((copySecondMouse[50] == 400)  && (copySecondMouse[51] < 600) && (copySecondMouse[51]  > 200))
+	{
+		okayToMoveRight = false;
+	}
+	
+	
+	if(((copySecondMouse[150] >= 400) && (copySecondMouse[150] <= 401)) && ((copySecondMouse[151] > 200) && (copySecondMouse[151] < 600)))		
+	{
+		okayToMoveLeft = false;
+	}
+	
+}
+
+
+
+//detrmines if the mouse hit the fourth wall 
+//for the second map
+function hitFourthWallSecondMap()
+{
+	var count = 0;
+
+	//hit botttom of wall
+
+	if(((copySecondMouse[0] > 300) && (copySecondMouse[0] < 520)) && (copySecondMouse[1] == 200))		//hit left side of first wall
+	{
+		okayToMoveUp = false;
+	}
+
+
+
+	
+	if(((copySecondMouse[100] > 300) && (copySecondMouse[100] < 520)) && ((copySecondMouse[101] >=200) && (copySecondMouse[101] <= 201)))		
+	{
+		okayToMoveDown = false;
+	}
+
+}
+
+
+
+//detrmines if the mouse hit the fifth wall 
+//for the second map
+function hitFifthWallSecondMap()
+{
+	var count = 0;
+
+	//hit botttom of wall
+
+	if(((copySecondMouse[0] > 500) && (copySecondMouse[0] < 600)) && (copySecondMouse[1] == 300))		//hit left side of first wall
+	{
+		okayToMoveUp = false;
+	}
+	
+
+	if(((copySecondMouse[100] > 500) && (copySecondMouse[100] < 600)) && ((copySecondMouse[101] >= 300) && (copySecondMouse[101] <= 301)))
+	{
+		okayToMoveDown = false;
+	}
+	
+}
+
+
+//detrmines if the mouse hit the sixth wall 
+//for the second map
+function hitSixthWallSecondMap()
+{
+	var count = 0;
+
+	//hit botttom of wall
+
+	if(((copySecondMouse[0] > 400) && (copySecondMouse[0] < 500)) && (copySecondMouse[1] == 400))		//hit left side of first wall
+	{
+		okayToMoveUp = false;
+	}
+	
+	
+	if(((copySecondMouse[100] > 400) && (copySecondMouse[100] < 500)) && ((copySecondMouse[101] >= 400) && (copySecondMouse[101] <= 401)))
+	{
+		okayToMoveDown = false;
+	}
+	
+}
+
+
+
+
+
+</script>
+
+<script>
+	
+//creates a event listener for the arrow keys
+	addEventListener(
+	"keydown", 
+
+	function(event) 
+	{
+
+	//if the second map needs to be shown
+	//creates the following commands
+	if(showMap1 == false)
+	{
+		keyboardPress = event.keyCode;
+
+		hitFirstWallSecondMap();
+		hitSecondWallSecondMap();
+		hitThirdWallSecondMap();
+		hitFourthWallSecondMap();
+		hitFifthWallSecondMap();
+		hitSixthWallSecondMap();
+	
+
+		if(keyboardPress == '38')			//move up
+		{
+			okayToMoveAgain();
+			direction = "up";
+
+
+			if(okayToMoveUp == true)
+			{
+				moveYDistance2 = moveYDistance2 + 10;
+				updateCircleCoordinatesSecondMap(direction);
+			}
+			else if(okayToMoveUp == false)
+			{
+				moveYDistance = moveYDistance;
+			}
+		}
+		else if(keyboardPress == '40')		//move down
+		{
+			okayToMoveAgain();
+			direction = "down";
+
+			if(okayToMoveDown == true)
+			{
+				moveYDistance2 = moveYDistance2 - 10;
+				updateCircleCoordinatesSecondMap(direction);
+			}
+			else if(okayToMoveDown == false)
+			{
+				moveYDistance2 = moveYDistance2;
+			}
+		}
+		else if(keyboardPress == '37')		//move left
+		{	
+			okayToMoveAgain();
+			direction = "left";
+
+			if(okayToMoveLeft == true)
+			{
+    			moveXDistance2 = moveXDistance2 - 10;
+    			updateCircleCoordinatesSecondMap(direction);
+			}
+			else if(okayToMoveLeft == false)
+			{
+				moveXDistance2 = moveXDistance2;
+			}
+
+		}
+		else if(keyboardPress == '39')		//move right
+		{
+			okayToMoveAgain();
+			direction = "right";
+
+			if(okayToMoveRight == true)
+			{
+				moveXDistance2 = moveXDistance2 + 10;
+				updateCircleCoordinatesSecondMap(direction);	
+			}
+			else if(okayToMoveRight == false)
+			{
+				moveXDistance2 = moveXDistance2;
+			}
+
+		}
+	}
+
+	//if the first map needs to be shown
+	//creates the following commands
+	if(showMap1 == true)
+	{
+		keyboardPress = event.keyCode;
+
+		hitFirstWall();
+		hitSecondWall();
+		hitThirdWall();
+		hitFourthWall();
+		hitFifthWall();
+		hitSixthWall();
+		hitSeventhWall();
+		hitEightWall();
+
+		if(keyboardPress == '38')			//move up
+		{
+			okayToMoveAgain();
+			direction = "up";
+			if(okayToMoveUp == true)
+			{
+				//execute code to move up
+				moveYDistance = moveYDistance + 10;
+				updateCircleCoordinates(direction);
+			}
+			else if(okayToMoveDown == false)
+			{
+				//must have hit a wall dont move it
+				moveYDistance = moveYDistance;
+			}
+		}
+		else if(keyboardPress == '40')		//move down
+		{
+				okayToMoveAgain();
+				direction = "down";
+
+				if(okayToMoveDown == true)
+				{
+					moveYDistance = moveYDistance - 10;
+					updateCircleCoordinates(direction);
+				}
+				else if(okayToMoveDown == false)
+				{
+					moveYDistance = moveYDistance;
+				}
+			}
+		else if(keyboardPress == '37')		//move left
+		{	
+				okayToMoveAgain();
+				direction = "left";
+				if(okayToMoveLeft == true)
+				{
+    				moveXDistance = moveXDistance - 10;
+    				updateCircleCoordinates(direction);
+				}
+				else if(okayToMoveLeft == false)
+				{
+					moveXDistance = moveXDistance;
+				}
+		}
+		else if(keyboardPress == '39')		//move right
+		{
+				okayToMoveAgain();
+				direction = "right";
+
+				if(okayToMoveRight == true)
+				{
+					moveXDistance = moveXDistance + 10;
+					updateCircleCoordinates(direction);	
+				}
+				else if(okayToMoveRight == false)
+				{
+					moveXDistance = moveXDistance;
+				}
+		}
+	}
+
+
+
+}
+				); 
+
+
+
+</script>
+
+</head>
+
+<!-- draw scene-->
+<body onload="main()">
+
+<canvas id="gl-canvas" width="600" height="600"></canvas>
+
+</body>
+</html>
